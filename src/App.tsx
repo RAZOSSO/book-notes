@@ -5,11 +5,13 @@ import { BookFormPage } from "./pages/BookFormPage";
 import { BookDetailPage } from "./pages/BookDetailPage";
 import { SearchPage } from "./pages/SearchPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ThemeToggle } from "./components/ThemeToggle";
 
 function App() {
   return (
     <LibraryProvider>
       <HashRouter>
+        <ThemeToggle />
         <Routes>
           <Route path="/" element={<ShelfPage />} />
           <Route path="/books/new" element={<BookFormPage />} />

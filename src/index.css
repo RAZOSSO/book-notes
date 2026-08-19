@@ -24,7 +24,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --text: #d4d1d8;
     --text-muted: #9b96a3;
     --text-h: #f3f1f6;
@@ -41,8 +41,61 @@
   }
 }
 
+:root[data-theme="dark"] {
+  --text: #d4d1d8;
+  --text-muted: #9b96a3;
+  --text-h: #f3f1f6;
+  --bg: #17151b;
+  --bg-raised: #201d26;
+  --border: #34303c;
+  --accent: #a888f0;
+  --accent-hover: #bda4f5;
+  --accent-bg: rgba(168, 136, 240, 0.15);
+  --danger: #e8756d;
+  --danger-bg: rgba(232, 117, 109, 0.12);
+  --quote-bg: #241f2b;
+  --shadow: rgba(0, 0, 0, 0.4) 0 4px 16px -4px;
+}
+
 * {
   box-sizing: border-box;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+.theme-toggle-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-toggle-btn.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+@media (max-width: 520px) {
+  .theme-toggle {
+    top: 8px;
+    right: 8px;
+  }
 }
 
 body {
