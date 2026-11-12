@@ -33,6 +33,8 @@ export function BookDetailPage() {
     addMemo,
     updateMemoText,
     deleteMemo,
+    saveAiSummary,
+    deleteAiSummary,
     addActionItem,
     toggleActionItem,
     deleteActionItem,
@@ -49,6 +51,7 @@ export function BookDetailPage() {
     [data.cards, bookId],
   );
   const summary = data.finishSummaries.find((f) => f.bookId === bookId);
+  const aiSummary = data.aiSummaries.find((s) => s.bookId === bookId);
   const memos = useMemo(
     () => data.memos.filter((m) => m.bookId === bookId),
     [data.memos, bookId],
@@ -178,6 +181,21 @@ export function BookDetailPage() {
             AIでまとめる
           </button>
         </div>
+        {aiSummary && (
+          <div className="ai-summary">
+            <div className="memo-item-header">
+              <span>AI要約（{new Date(aiSummary.updatedAt).toLocaleString("ja-JP")}）</span>
+              <button
+                type="button"
+                className="btn-link"
+                onClick={() => deleteAiSummary(book.id)}
+              >
+                削除
+              </button>
+            </div>
+            <p className="ai-summary-text">{aiSummary.text}</p>
+          </div>
+        )}
         <MemoList
           memos={memos}
           onAdd={(text) => addMemo(book.id, text)}
@@ -270,7 +288,7 @@ export function BookDetailPage() {
         <AiSummaryModal
           bookTitle={book.title}
           memoTexts={memos.map((m) => m.text)}
-          onAddMemo={(text) => addMemo(book.id, text)}
+          onSave={(text) => saveAiSummary(book.id, text)}
           onClose={() => setShowAiSummary(false)}
         />
       )}

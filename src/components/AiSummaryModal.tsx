@@ -9,12 +9,12 @@ type Status = "loading" | "done" | "error" | "missing-key" | "invalid-key";
 export function AiSummaryModal({
   bookTitle,
   memoTexts,
-  onAddMemo,
+  onSave,
   onClose,
 }: {
   bookTitle: string;
   memoTexts: string[];
-  onAddMemo: (text: string) => void;
+  onSave: (text: string) => void;
   onClose: () => void;
 }) {
   const [status, setStatus] = useState<Status>("loading");
@@ -119,11 +119,11 @@ export function AiSummaryModal({
               type="button"
               className="btn btn-primary"
               onClick={() => {
-                onAddMemo(result);
+                onSave(result);
                 onClose();
               }}
             >
-              メモに追加
+              AI要約として保存
             </button>
           )}
         </div>

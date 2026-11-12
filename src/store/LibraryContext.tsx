@@ -9,6 +9,7 @@ import {
 } from "react";
 import type {
   ActionItem,
+  AiSummary,
   Book,
   BookStatus,
   Card,
@@ -29,6 +30,7 @@ function emptyData(): LibraryData {
     actionItems: [],
     tags: [],
     memos: [],
+    aiSummaries: [],
   };
 }
 
@@ -46,6 +48,7 @@ function loadData(): LibraryData {
       memos: (parsed.memos ?? []).map((m) =>
         "id" in m && m.id ? m : { ...m, id: createId() },
       ),
+      aiSummaries: parsed.aiSummaries ?? [],
     };
   } catch {
     return emptyData();
@@ -87,6 +90,8 @@ interface LibraryContextValue {
   addMemo: (bookId: string, text: string) => Memo;
   updateMemoText: (id: string, text: string) => void;
   deleteMemo: (id: string) => void;
+  saveAiSummary: (bookId: string, text: string) => void;
+  deleteAiSummary: (bookId: string) => void;
   addActionItem: (bookId: string, text: string) => ActionItem;
   toggleActionItem: (id: string) => void;
   updateActionItemText: (id: string, text: string) => void;
@@ -160,6 +165,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       finishSummaries: prev.finishSummaries.filter((f) => f.bookId !== id),
       actionItems: prev.actionItems.filter((a) => a.bookId !== id),
       memos: prev.memos.filter((m) => m.bookId !== id),
+      aiSummaries: prev.aiSummaries.filter((s) => s.bookId !== id),
       tags: prev.tags,
     }));
   }, []);
@@ -283,6 +289,30 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({ ...prev, memos: prev.memos.filter((m) => m.id !== id) }));
   }, []);
 
+  const saveAiSummary = useCallback((bookId: string, text: string) => {
+    const timestamp = nowIso();
+    setData((prev) => {
+      const existing = prev.aiSummaries.find((s) => s.bookId === bookId);
+      const next: AiSummary = {
+        bookId,
+        text: text.trim(),
+        createdAt: existing?.createdAt ?? timestamp,
+        updatedAt: timestamp,
+      };
+      return {
+        ...prev,
+        aiSummaries: [...prev.aiSummaries.filter((s) => s.bookId !== bookId), next],
+      };
+    });
+  }, []);
+
+  const deleteAiSummary = useCallback((bookId: string) => {
+    setData((prev) => ({
+      ...prev,
+      aiSummaries: prev.aiSummaries.filter((s) => s.bookId !== bookId),
+    }));
+  }, []);
+
   const addActionItem = useCallback((bookId: string, text: string): ActionItem => {
     const timestamp = nowIso();
     const item: ActionItem = {
@@ -336,6 +366,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       addMemo,
       updateMemoText,
       deleteMemo,
+      saveAiSummary,
+      deleteAiSummary,
       addActionItem,
       toggleActionItem,
       updateActionItemText,
@@ -343,6 +375,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }),
     [
       data,
+      saveAiSummary,
+      deleteAiSummary,
       addBook,
       updateBook,
       deleteBook,
