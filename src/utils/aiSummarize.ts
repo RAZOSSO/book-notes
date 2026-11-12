@@ -26,7 +26,7 @@ export async function summarizeMemos(
   const notes = memoTexts.map((t, i) => `[${i + 1}] ${t}`).join("\n\n");
 
   const response = await client.messages.create({
-    model: "claude-opus-5",
+    model: "claude-haiku-5-5",
     max_tokens: 1024,
     thinking: { type: "adaptive" },
     output_config: { effort: "low" },
