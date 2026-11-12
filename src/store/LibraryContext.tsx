@@ -65,23 +65,28 @@ function mergeLegacyAiSummaries(
   return result;
 }
 
+/** Fill in missing collections and upgrade older saved shapes. */
+export function normalizeData(input: unknown): LibraryData {
+  const parsed = (input ?? {}) as Partial<LibraryData> & {
+    aiSummaries?: { bookId: string; text: string; updatedAt?: string }[];
+  };
+  return {
+    books: parsed.books ?? [],
+    cards: parsed.cards ?? [],
+    finishSummaries: mergeLegacyAiSummaries(parsed.finishSummaries ?? [], parsed.aiSummaries),
+    actionItems: parsed.actionItems ?? [],
+    tags: parsed.tags ?? [],
+    memos: (parsed.memos ?? []).map((m) =>
+      "id" in m && m.id ? m : { ...m, id: createId() },
+    ),
+  };
+}
+
 function loadData(): LibraryData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptyData();
-    const parsed = JSON.parse(raw) as Partial<LibraryData> & {
-      aiSummaries?: { bookId: string; text: string; updatedAt?: string }[];
-    };
-    return {
-      books: parsed.books ?? [],
-      cards: parsed.cards ?? [],
-      finishSummaries: mergeLegacyAiSummaries(parsed.finishSummaries ?? [], parsed.aiSummaries),
-      actionItems: parsed.actionItems ?? [],
-      tags: parsed.tags ?? [],
-      memos: (parsed.memos ?? []).map((m) =>
-        "id" in m && m.id ? m : { ...m, id: createId() },
-      ),
-    };
+    return normalizeData(JSON.parse(raw));
   } catch {
     return emptyData();
   }
@@ -111,6 +116,7 @@ export interface CardUpdateInput {
 
 interface LibraryContextValue {
   data: LibraryData;
+  replaceAll: (data: LibraryData) => void;
   addBook: (input: NewBookInput) => Book;
   updateBook: (id: string, patch: Partial<Omit<Book, "id" | "createdAt">>) => void;
   deleteBook: (id: string) => void;
@@ -159,6 +165,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  const replaceAll = useCallback((next: LibraryData) => {
+    setData(next);
+  }, []);
 
   const addBook = useCallback((input: NewBookInput): Book => {
     const timestamp = nowIso();
@@ -360,6 +370,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const value = useMemo<LibraryContextValue>(
     () => ({
       data,
+      replaceAll,
       addBook,
       updateBook,
       deleteBook,
@@ -378,6 +389,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }),
     [
       data,
+      replaceAll,
       addBook,
       updateBook,
       deleteBook,
