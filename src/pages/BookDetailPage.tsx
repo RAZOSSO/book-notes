@@ -5,7 +5,7 @@ import { STATUS_LABEL, STATUS_ORDER, type BookStatus } from "../types";
 import { RatingInput } from "../components/RatingInput";
 import { CardForm } from "../components/CardForm";
 import { CardItem } from "../components/CardItem";
-import { FinishSummaryEditor } from "../components/FinishSummaryEditor";
+import { FinishSummaryEditor, type AppendRequest } from "../components/FinishSummaryEditor";
 import { MemoList } from "../components/MemoList";
 import { ActionItemList } from "../components/ActionItemList";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -33,8 +33,6 @@ export function BookDetailPage() {
     addMemo,
     updateMemoText,
     deleteMemo,
-    saveAiSummary,
-    deleteAiSummary,
     addActionItem,
     toggleActionItem,
     deleteActionItem,
@@ -43,6 +41,7 @@ export function BookDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showAiSummary, setShowAiSummary] = useState(false);
+  const [summaryAppend, setSummaryAppend] = useState<AppendRequest>();
   const [cardSort, setCardSort] = useState<CardSort>("new");
 
   const book = data.books.find((b) => b.id === bookId);
@@ -51,7 +50,6 @@ export function BookDetailPage() {
     [data.cards, bookId],
   );
   const summary = data.finishSummaries.find((f) => f.bookId === bookId);
-  const aiSummary = data.aiSummaries.find((s) => s.bookId === bookId);
   const memos = useMemo(
     () => data.memos.filter((m) => m.bookId === bookId),
     [data.memos, bookId],
@@ -181,21 +179,6 @@ export function BookDetailPage() {
             AIでまとめる
           </button>
         </div>
-        {aiSummary && (
-          <div className="ai-summary">
-            <div className="memo-item-header">
-              <span>AI要約（{new Date(aiSummary.updatedAt).toLocaleString("ja-JP")}）</span>
-              <button
-                type="button"
-                className="btn-link"
-                onClick={() => deleteAiSummary(book.id)}
-              >
-                削除
-              </button>
-            </div>
-            <p className="ai-summary-text">{aiSummary.text}</p>
-          </div>
-        )}
         <MemoList
           memos={memos}
           onAdd={(text) => addMemo(book.id, text)}
@@ -211,6 +194,7 @@ export function BookDetailPage() {
           summary={summary?.summary}
           onSave={(text) => saveFinishSummary(book.id, text)}
           draftKey={`summary-${book.id}`}
+          appendRequest={summaryAppend}
         />
       </section>
 
@@ -288,7 +272,7 @@ export function BookDetailPage() {
         <AiSummaryModal
           bookTitle={book.title}
           memoTexts={memos.map((m) => m.text)}
-          onSave={(text) => saveAiSummary(book.id, text)}
+          onSave={(text) => setSummaryAppend((prev) => ({ id: (prev?.id ?? 0) + 1, text }))}
           onClose={() => setShowAiSummary(false)}
         />
       )}

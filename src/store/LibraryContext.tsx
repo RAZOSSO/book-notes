@@ -9,7 +9,6 @@ import {
 } from "react";
 import type {
   ActionItem,
-  AiSummary,
   Book,
   BookStatus,
   Card,
@@ -30,25 +29,58 @@ function emptyData(): LibraryData {
     actionItems: [],
     tags: [],
     memos: [],
-    aiSummaries: [],
   };
+}
+
+/**
+ * A short-lived version stored AI summaries separately (`aiSummaries`).
+ * Fold any of those into the book's finish summary so nothing is lost.
+ */
+function mergeLegacyAiSummaries(
+  finishSummaries: FinishSummary[],
+  legacy: { bookId: string; text: string; updatedAt?: string }[] | undefined,
+): FinishSummary[] {
+  if (!legacy?.length) return finishSummaries;
+  let result = [...finishSummaries];
+  for (const ai of legacy) {
+    if (!ai.text?.trim()) continue;
+    const existing = result.find((f) => f.bookId === ai.bookId);
+    const timestamp = new Date().toISOString();
+    if (existing) {
+      const current = existing.summary?.trim() ?? "";
+      if (current.includes(ai.text.trim())) continue;
+      const summary = current ? `${current}\n\n${ai.text.trim()}` : ai.text.trim();
+      result = result.map((f) =>
+        f.bookId === ai.bookId ? { ...f, summary, updatedAt: timestamp } : f,
+      );
+    } else {
+      result.push({
+        bookId: ai.bookId,
+        summary: ai.text.trim(),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    }
+  }
+  return result;
 }
 
 function loadData(): LibraryData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return emptyData();
-    const parsed = JSON.parse(raw) as Partial<LibraryData>;
+    const parsed = JSON.parse(raw) as Partial<LibraryData> & {
+      aiSummaries?: { bookId: string; text: string; updatedAt?: string }[];
+    };
     return {
       books: parsed.books ?? [],
       cards: parsed.cards ?? [],
-      finishSummaries: parsed.finishSummaries ?? [],
+      finishSummaries: mergeLegacyAiSummaries(parsed.finishSummaries ?? [], parsed.aiSummaries),
       actionItems: parsed.actionItems ?? [],
       tags: parsed.tags ?? [],
       memos: (parsed.memos ?? []).map((m) =>
         "id" in m && m.id ? m : { ...m, id: createId() },
       ),
-      aiSummaries: parsed.aiSummaries ?? [],
     };
   } catch {
     return emptyData();
@@ -90,8 +122,6 @@ interface LibraryContextValue {
   addMemo: (bookId: string, text: string) => Memo;
   updateMemoText: (id: string, text: string) => void;
   deleteMemo: (id: string) => void;
-  saveAiSummary: (bookId: string, text: string) => void;
-  deleteAiSummary: (bookId: string) => void;
   addActionItem: (bookId: string, text: string) => ActionItem;
   toggleActionItem: (id: string) => void;
   updateActionItemText: (id: string, text: string) => void;
@@ -165,7 +195,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       finishSummaries: prev.finishSummaries.filter((f) => f.bookId !== id),
       actionItems: prev.actionItems.filter((a) => a.bookId !== id),
       memos: prev.memos.filter((m) => m.bookId !== id),
-      aiSummaries: prev.aiSummaries.filter((s) => s.bookId !== id),
       tags: prev.tags,
     }));
   }, []);
@@ -289,30 +318,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     setData((prev) => ({ ...prev, memos: prev.memos.filter((m) => m.id !== id) }));
   }, []);
 
-  const saveAiSummary = useCallback((bookId: string, text: string) => {
-    const timestamp = nowIso();
-    setData((prev) => {
-      const existing = prev.aiSummaries.find((s) => s.bookId === bookId);
-      const next: AiSummary = {
-        bookId,
-        text: text.trim(),
-        createdAt: existing?.createdAt ?? timestamp,
-        updatedAt: timestamp,
-      };
-      return {
-        ...prev,
-        aiSummaries: [...prev.aiSummaries.filter((s) => s.bookId !== bookId), next],
-      };
-    });
-  }, []);
-
-  const deleteAiSummary = useCallback((bookId: string) => {
-    setData((prev) => ({
-      ...prev,
-      aiSummaries: prev.aiSummaries.filter((s) => s.bookId !== bookId),
-    }));
-  }, []);
-
   const addActionItem = useCallback((bookId: string, text: string): ActionItem => {
     const timestamp = nowIso();
     const item: ActionItem = {
@@ -366,8 +371,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       addMemo,
       updateMemoText,
       deleteMemo,
-      saveAiSummary,
-      deleteAiSummary,
       addActionItem,
       toggleActionItem,
       updateActionItemText,
@@ -375,8 +378,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }),
     [
       data,
-      saveAiSummary,
-      deleteAiSummary,
       addBook,
       updateBook,
       deleteBook,

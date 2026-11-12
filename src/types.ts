@@ -54,13 +54,6 @@ export interface Memo {
   updatedAt: string;
 }
 
-export interface AiSummary {
-  bookId: string;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ActionItem {
   id: string;
   bookId: string;
@@ -83,5 +76,4 @@ export interface LibraryData {
   actionItems: ActionItem[];
   tags: Tag[];
   memos: Memo[];
-  aiSummaries: AiSummary[];
 }

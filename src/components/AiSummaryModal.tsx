@@ -123,7 +123,7 @@ export function AiSummaryModal({
                 onClose();
               }}
             >
-              AI要約として保存
+              読了まとめに追加
             </button>
           )}
         </div>

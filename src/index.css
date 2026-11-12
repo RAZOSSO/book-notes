@@ -582,20 +582,6 @@ textarea {
   justify-content: space-between;
 }
 
-/* AI summary */
-.ai-summary {
-  background: var(--accent-bg);
-  border: 1px solid var(--accent);
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
-.ai-summary-text {
-  margin: 0;
-  white-space: pre-wrap;
-}
-
 /* Memo */
 .memo-list-wrap {
   display: flex;
