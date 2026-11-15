@@ -11,10 +11,15 @@ import { ActionItemList } from "../components/ActionItemList";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ExportModal } from "../components/ExportModal";
 import { AiSummaryModal } from "../components/AiSummaryModal";
+import { AiQuestionsModal } from "../components/AiQuestionsModal";
+import { AiActionsModal } from "../components/AiActionsModal";
+import { AiPostModal } from "../components/AiPostModal";
+import type { BookContext } from "../utils/ai";
 import { progressRatio } from "../utils/selectors";
 import { exportBookToMarkdown } from "../utils/markdown";
 
 type CardSort = "new" | "old" | "page";
+type AiFeature = "summary" | "questions" | "actions" | "post";
 
 export function BookDetailPage() {
   const { bookId } = useParams();
@@ -40,7 +45,7 @@ export function BookDetailPage() {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [showAiSummary, setShowAiSummary] = useState(false);
+  const [aiFeature, setAiFeature] = useState<AiFeature | null>(null);
   const [summaryAppend, setSummaryAppend] = useState<AppendRequest>();
   const [cardSort, setCardSort] = useState<CardSort>("new");
 
@@ -87,6 +92,14 @@ export function BookDetailPage() {
   }
 
   const ratio = progressRatio(book);
+  const aiCtx: BookContext = { book, memos, cards, summary, actionItems };
+  const hasNotes =
+    memos.some((m) => m.text.trim()) ||
+    cards.length > 0 ||
+    Boolean(summary?.summary?.trim());
+  const needNotesTitle = hasNotes ? undefined : "先にメモ・カード・読了まとめのどれかを書いてください";
+  const appendToSummary = (text: string) =>
+    setSummaryAppend((prev) => ({ id: (prev?.id ?? 0) + 1, text }));
 
   return (
     <div className="page book-detail-page">
@@ -174,7 +187,7 @@ export function BookDetailPage() {
             className="btn"
             disabled={memos.length === 0}
             title={memos.length === 0 ? "先にメモを1件以上追加してください" : undefined}
-            onClick={() => setShowAiSummary(true)}
+            onClick={() => setAiFeature("summary")}
           >
             AIでまとめる
           </button>
@@ -189,7 +202,29 @@ export function BookDetailPage() {
       </section>
 
       <section className="book-section">
-        <h2>読了まとめ</h2>
+        <div className="card-list-header">
+          <h2>読了まとめ</h2>
+          <div className="header-actions">
+            <button
+              type="button"
+              className="btn"
+              disabled={!hasNotes}
+              title={needNotesTitle}
+              onClick={() => setAiFeature("questions")}
+            >
+              AIに質問してもらう
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!hasNotes}
+              title={needNotesTitle}
+              onClick={() => setAiFeature("post")}
+            >
+              発信用の文章を作る
+            </button>
+          </div>
+        </div>
         <FinishSummaryEditor
           summary={summary?.summary}
           onSave={(text) => saveFinishSummary(book.id, text)}
@@ -199,7 +234,18 @@ export function BookDetailPage() {
       </section>
 
       <section className="book-section">
-        <h2>次の行動</h2>
+        <div className="card-list-header">
+          <h2>次の行動</h2>
+          <button
+            type="button"
+            className="btn"
+            disabled={!hasNotes}
+            title={needNotesTitle}
+            onClick={() => setAiFeature("actions")}
+          >
+            AIに提案してもらう
+          </button>
+        </div>
         <ActionItemList
           items={actionItems}
           onAdd={(text) => addActionItem(book.id, text)}
@@ -268,14 +314,20 @@ export function BookDetailPage() {
         />
       )}
 
-      {showAiSummary && (
-        <AiSummaryModal
-          bookTitle={book.title}
-          memoTexts={memos.map((m) => m.text)}
-          onSave={(text) => setSummaryAppend((prev) => ({ id: (prev?.id ?? 0) + 1, text }))}
-          onClose={() => setShowAiSummary(false)}
+      {aiFeature === "summary" && (
+        <AiSummaryModal ctx={aiCtx} onSave={appendToSummary} onClose={() => setAiFeature(null)} />
+      )}
+      {aiFeature === "questions" && (
+        <AiQuestionsModal ctx={aiCtx} onSave={appendToSummary} onClose={() => setAiFeature(null)} />
+      )}
+      {aiFeature === "actions" && (
+        <AiActionsModal
+          ctx={aiCtx}
+          onAdd={(text) => addActionItem(book.id, text)}
+          onClose={() => setAiFeature(null)}
         />
       )}
+      {aiFeature === "post" && <AiPostModal ctx={aiCtx} onClose={() => setAiFeature(null)} />}
     </div>
   );
 }

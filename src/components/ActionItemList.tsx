@@ -1,6 +1,7 @@
 import { type FormEvent } from "react";
 import type { ActionItem } from "../types";
 import { useDraft } from "../hooks/useDraft";
+import { reviewDueAt } from "../store/LibraryContext";
 
 export function ActionItemList({
   items,
@@ -39,6 +40,12 @@ export function ActionItemList({
               />
               <span>{item.text}</span>
             </label>
+            {!item.done && !item.reviewedAt && (
+              <span className="hint action-review-date">
+                {new Date(reviewDueAt(item)).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" })}
+                にふりかえり
+              </span>
+            )}
             <button
               type="button"
               className="btn-link btn-link-danger"

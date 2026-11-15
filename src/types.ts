@@ -59,6 +59,10 @@ export interface ActionItem {
   bookId: string;
   text: string;
   done: boolean;
+  /** When to ask "did you do it?" (ISO). Missing on older items → createdAt + 7 days. */
+  reviewAt?: string;
+  /** Set once the review has been answered with できた or 聞かないで. */
+  reviewedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

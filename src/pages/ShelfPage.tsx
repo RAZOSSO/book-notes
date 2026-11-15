@@ -4,6 +4,7 @@ import { useLibrary } from "../store/LibraryContext";
 import { STATUS_LABEL, STATUS_ORDER, type Book, type BookStatus } from "../types";
 import { StatusBadge } from "../components/StatusBadge";
 import { RatingInput } from "../components/RatingInput";
+import { ReviewPanel } from "../components/ReviewPanel";
 import { isThisMonth, isThisYear, progressRatio } from "../utils/selectors";
 
 type SortKey = "createdAt" | "updatedAt" | "title" | "finishedAt";
@@ -65,6 +66,8 @@ export function ShelfPage() {
           </Link>
         </div>
       </header>
+
+      <ReviewPanel />
 
       <div className="stats-row">
         <span>今年の読了: {finishedThisYear}冊</span>

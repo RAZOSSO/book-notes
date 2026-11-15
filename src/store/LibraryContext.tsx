@@ -132,12 +132,35 @@ interface LibraryContextValue {
   toggleActionItem: (id: string) => void;
   updateActionItemText: (id: string, text: string) => void;
   deleteActionItem: (id: string) => void;
+  reviewActionItem: (id: string, result: ReviewResult) => void;
 }
+
+/** できた → done; もう1週間 → ask again in 7 days; 聞かないで → stop asking. */
+export type ReviewResult = "done" | "later" | "stop";
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+const REVIEW_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
+function inAWeek(): string {
+  return new Date(Date.now() + REVIEW_AFTER_MS).toISOString();
+}
+
+/** When this action item's review is due (ISO). */
+export function reviewDueAt(item: ActionItem): string {
+  return item.reviewAt ?? new Date(new Date(item.createdAt).getTime() + REVIEW_AFTER_MS).toISOString();
+}
+
+/** Action items whose "did you do it?" review is due now. */
+export function dueReviews(items: ActionItem[], now = new Date()): ActionItem[] {
+  const nowIsoStr = now.toISOString();
+  return items
+    .filter((a) => !a.done && !a.reviewedAt && reviewDueAt(a) <= nowIsoStr)
+    .sort((a, b) => reviewDueAt(a).localeCompare(reviewDueAt(b)));
 }
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
@@ -335,6 +358,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       bookId,
       text: text.trim(),
       done: false,
+      reviewAt: inAWeek(),
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -367,6 +391,19 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const reviewActionItem = useCallback((id: string, result: ReviewResult) => {
+    setData((prev) => ({
+      ...prev,
+      actionItems: prev.actionItems.map((a) => {
+        if (a.id !== id) return a;
+        const timestamp = nowIso();
+        if (result === "done") return { ...a, done: true, reviewedAt: timestamp, updatedAt: timestamp };
+        if (result === "later") return { ...a, reviewAt: inAWeek(), updatedAt: timestamp };
+        return { ...a, reviewedAt: timestamp, updatedAt: timestamp };
+      }),
+    }));
+  }, []);
+
   const value = useMemo<LibraryContextValue>(
     () => ({
       data,
@@ -386,6 +423,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggleActionItem,
       updateActionItemText,
       deleteActionItem,
+      reviewActionItem,
     }),
     [
       data,
@@ -405,6 +443,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       toggleActionItem,
       updateActionItemText,
       deleteActionItem,
+      reviewActionItem,
     ],
   );
 
